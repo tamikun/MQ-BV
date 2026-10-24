@@ -8,8 +8,23 @@
 
     <h1>My Image from Google Drive</h1>
     
-    <!-- Embed the direct Google Drive link below -->
-    <img src="https://google.com" alt="Description of my image">
+    <div class="gallery" id="gallery"></div>
 
+    <script>
+    const imageIds = [
+    "1dmGpYlh-JvFFlrL2JostjrDf6_-Ii_9Q",
+    "1zbMHXn7hf3omzQU3wCAXaIy5QHHPqsjy",
+    ];
+
+    const gallery = document.getElementById("gallery");
+
+    imageIds.forEach(id => {
+    const img = document.createElement("img");
+    img.src = `https://drive.google.com/thumbnail?id=${id}&sz=w1000`;
+    img.alt = "Hình ảnh từ Google Drive";
+    img.loading = "lazy";
+    gallery.appendChild(img);
+    });
+    </script>
 </body>
 </html>
