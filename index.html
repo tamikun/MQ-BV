@@ -1,17 +1,23 @@
 <!DOCTYPE html>
 <html lang="vi">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Google Drive Gallery</title>
+    <title>Thư viện ảnh Google Drive</title>
     <style>
         :root {
             --bg: #f4f4f4;
             --panel: #ffffff;
             --text: #1f2937;
             --muted: #6b7280;
+            --line: #e5e7eb;
+            --accent: #2563eb;
+            --accent-soft: #eff6ff;
+            --danger: #dc2626;
             --shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
             --radius: 18px;
+            --sidebar-w: 280px;
         }
 
         * {
@@ -20,162 +26,1303 @@
 
         body {
             margin: 0;
-            padding: 32px 20px 60px;
             font-family: Arial, Helvetica, sans-serif;
             background: var(--bg);
             color: var(--text);
         }
 
-        .container {
-            max-width: 1300px;
+        button {
+            font: inherit;
+            color: inherit;
+            cursor: pointer;
+        }
+
+        button:focus-visible,
+        input:focus-visible,
+        select:focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: 2px;
+        }
+
+        /* ---------- Layout ---------- */
+        .app {
+            display: grid;
+            grid-template-columns: var(--sidebar-w) 1fr;
+            gap: 20px;
+            max-width: 1500px;
             margin: 0 auto;
+            padding: 24px 20px 90px;
+            align-items: start;
         }
 
-        h1 {
-            text-align: center;
-            margin-bottom: 10px;
-            font-size: clamp(2rem, 3vw, 3rem);
+        .sidebar {
+            position: sticky;
+            top: 24px;
+            max-height: calc(100vh - 48px);
+            overflow-y: auto;
+            background: var(--panel);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 18px;
         }
 
-        .subtitle {
-            text-align: center;
-            color: var(--muted);
-            margin-bottom: 32px;
+        .sidebar h2 {
+            margin: 0 0 12px;
             font-size: 16px;
+        }
+
+        .sidebar h3 {
+            margin: 18px 0 8px;
+            font-size: 13px;
+            color: var(--muted);
+            font-weight: 600;
+        }
+
+        .seg {
+            display: flex;
+            gap: 4px;
+            background: #f3f4f6;
+            padding: 3px;
+            border-radius: 10px;
+        }
+
+        .seg button {
+            flex: 1;
+            border: 0;
+            background: transparent;
+            padding: 6px 4px;
+            border-radius: 8px;
+            font-size: 13px;
+        }
+
+        .seg button.active {
+            background: #fff;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, .12);
+            font-weight: 600;
+        }
+
+        .tag-list {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .tag-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 10px;
+            border-radius: 10px;
+            border: 0;
+            background: transparent;
+            width: 100%;
+            text-align: left;
+            font-size: 14px;
+        }
+
+        .tag-item:hover {
+            background: #f3f4f6;
+        }
+
+        .tag-item.active {
+            background: var(--accent-soft);
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        .tag-item .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            flex: none;
+            background: #9ca3af;
+        }
+
+        .tag-item .name {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .tag-item .count {
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .tag-item .tools {
+            display: none;
+            gap: 2px;
+        }
+
+        .tag-item:hover .tools,
+        .tag-item:focus-within .tools {
+            display: flex;
+        }
+
+        .tag-item:hover .count,
+        .tag-item:focus-within .count {
+            display: none;
+        }
+
+        .icon-btn {
+            border: 0;
+            background: transparent;
+            padding: 2px 6px;
+            border-radius: 6px;
+            font-size: 13px;
+            color: var(--muted);
+            line-height: 1.2;
+        }
+
+        .icon-btn:hover {
+            background: #e5e7eb;
+            color: var(--text);
+        }
+
+        .icon-btn.del:hover {
+            color: var(--danger);
+        }
+
+        .add-tag {
+            display: flex;
+            gap: 6px;
+            margin-top: 6px;
+        }
+
+        .add-tag input,
+        .lb-new input {
+            flex: 1;
+            min-width: 0;
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            padding: 8px 10px;
+            font-size: 14px;
+            background: #fff;
+        }
+
+        .btn {
+            border: 1px solid var(--line);
+            background: #fff;
+            padding: 8px 12px;
+            border-radius: 10px;
+            font-size: 14px;
+        }
+
+        .btn:hover {
+            background: #f9fafb;
+        }
+
+        .btn.primary {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: #fff;
+        }
+
+        .btn.primary:hover {
+            background: #1d4ed8;
+        }
+
+        .btn.full {
+            width: 100%;
+        }
+
+        .side-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-top: 6px;
+        }
+
+        .main {
+            min-width: 0;
+        }
+
+        .topbar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 14px;
+            flex-wrap: wrap;
+        }
+
+        .topbar h1 {
+            margin: 0;
+            font-size: clamp(1.3rem, 2.4vw, 1.9rem);
+        }
+
+        .topbar .grow {
+            flex: 1;
+        }
+
+        .menu-btn {
+            display: none;
         }
 
         .gallery-wrapper {
             background: var(--panel);
             border-radius: var(--radius);
             box-shadow: var(--shadow);
-            padding: 24px;
+            padding: 20px;
         }
 
+        .status {
+            color: var(--muted);
+            margin-bottom: 16px;
+            font-size: 14px;
+        }
+
+        .status.error {
+            color: #c53030;
+            background: #fff5f5;
+            border: 1px solid #fed7d7;
+            border-radius: 12px;
+            padding: 12px 16px;
+        }
+
+        .empty {
+            text-align: center;
+            color: var(--muted);
+            padding: 60px 0;
+        }
+
+        /* ---------- Grid ---------- */
         .gallery-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-            gap: 20px;
+            grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+            gap: 16px;
         }
 
         .photo-card {
+            position: relative;
             overflow: hidden;
             background: #f9fafb;
             border-radius: 14px;
-            border: 1px solid #e5e7eb;
+            border: 2px solid #e5e7eb;
             box-shadow: 0 4px 14px rgba(0, 0, 0, 0.04);
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            cursor: zoom-in;
+            padding: 0;
+            text-align: left;
+            display: block;
+            width: 100%;
+            transition: box-shadow .2s ease, border-color .15s ease;
         }
 
         .photo-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 18px rgba(0, 0, 0, 0.08);
+            box-shadow: 0 8px 18px rgba(0, 0, 0, 0.1);
+        }
+
+        .select-mode .photo-card {
+            cursor: pointer;
+        }
+
+        .photo-card.selected {
+            border-color: var(--accent);
         }
 
         .photo-card img {
             display: block;
             width: 100%;
-            height: 360px;
+            height: 300px;
             object-fit: cover;
-            transition: transform 0.25s ease;
             background: #eef2f7;
+            transition: transform .25s ease;
         }
 
         .photo-card:hover img {
             transform: scale(1.03);
         }
 
+        .img-clip {
+            overflow: hidden;
+        }
+
+        .photo-meta {
+            padding: 10px 12px;
+        }
+
         .photo-name {
-            padding: 12px 14px;
-            font-size: 14px;
-            color: var(--text);
+            font-size: 13px;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
         }
 
-        .status {
-            text-align: center;
-            color: var(--muted);
-            margin-bottom: 20px;
+        .chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            margin-top: 6px;
+            min-height: 22px;
+        }
+
+        .chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 2px 8px;
+            font-size: 12px;
+            border-radius: 999px;
+            background: #f3f4f6;
+            color: #374151;
+            border: 1px solid transparent;
+        }
+
+        .chip::before {
+            content: "";
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--c, #9ca3af);
+        }
+
+        .check {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, .9);
+            border: 2px solid #9ca3af;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            color: #fff;
+        }
+
+        .select-mode .check {
+            display: flex;
+        }
+
+        .photo-card.selected .check {
+            background: var(--accent);
+            border-color: var(--accent);
+        }
+
+        /* ---------- Bulk bar ---------- */
+        .bulkbar {
+            position: fixed;
+            left: 50%;
+            bottom: 18px;
+            transform: translateX(-50%);
+            background: #111827;
+            color: #fff;
+            padding: 10px 14px;
+            border-radius: 16px;
+            display: none;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            max-width: min(900px, calc(100vw - 24px));
+            box-shadow: 0 12px 30px rgba(0, 0, 0, .3);
+            z-index: 40;
+        }
+
+        .bulkbar.show {
+            display: flex;
+        }
+
+        .bulkbar .info {
             font-size: 14px;
         }
 
-        .error {
-            color: #c53030;
-            background: #fff5f5;
-            border: 1px solid #fed7d7;
-            border-radius: 12px;
+        .bulkbar .chip {
+            cursor: pointer;
+            background: #1f2937;
+            color: #fff;
+            border-color: #374151;
+        }
+
+        .bulkbar .chip.on {
+            background: #fff;
+            color: #111827;
+        }
+
+        .bulkbar .btn {
+            background: transparent;
+            color: #fff;
+            border-color: #4b5563;
+            padding: 5px 10px;
+            font-size: 13px;
+        }
+
+        .bulkbar .btn:hover {
+            background: #1f2937;
+        }
+
+        /* ---------- Lightbox ---------- */
+        .lightbox {
+            position: fixed;
+            inset: 0;
+            z-index: 100;
+            background: rgba(10, 12, 16, .94);
+            display: none;
+            flex-direction: column;
+            color: #fff;
+        }
+
+        .lightbox.open {
+            display: flex;
+        }
+
+        .lb-top {
+            display: flex;
+            align-items: center;
+            gap: 12px;
             padding: 12px 16px;
-            margin-bottom: 20px;
+            font-size: 14px;
+        }
+
+        .lb-top .title {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .lb-top .counter {
+            color: #9ca3af;
+        }
+
+        .lb-btn {
+            border: 0;
+            background: rgba(255, 255, 255, .12);
+            color: #fff;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            font-size: 20px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .lb-btn:hover {
+            background: rgba(255, 255, 255, .25);
+        }
+
+        .lb-stage {
+            flex: 1;
+            min-height: 0;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 64px;
+        }
+
+        .lb-stage img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            user-select: none;
+            -webkit-user-drag: none;
+        }
+
+        .lb-stage .loading {
+            position: absolute;
+            color: #9ca3af;
+            font-size: 14px;
+        }
+
+        .lb-nav {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        .lb-nav.prev {
+            left: 12px;
+        }
+
+        .lb-nav.next {
+            right: 12px;
+        }
+
+        .lb-bottom {
+            padding: 12px 16px 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .lb-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            justify-content: center;
+            max-height: 96px;
+            overflow-y: auto;
+        }
+
+        .lb-tags .chip {
+            cursor: pointer;
+            background: rgba(255, 255, 255, .1);
+            color: #e5e7eb;
+            padding: 5px 11px;
+            font-size: 13px;
+        }
+
+        .lb-tags .chip:hover {
+            background: rgba(255, 255, 255, .2);
+        }
+
+        .lb-tags .chip.on {
+            background: #fff;
+            color: #111827;
+            font-weight: 600;
+        }
+
+        .lb-new {
+            display: flex;
+            gap: 6px;
+            width: min(420px, 100%);
+        }
+
+        .lb-new input {
+            background: rgba(255, 255, 255, .1);
+            border-color: rgba(255, 255, 255, .25);
+            color: #fff;
+        }
+
+        .lb-new input::placeholder {
+            color: #9ca3af;
+        }
+
+        .lb-new .btn {
+            background: rgba(255, 255, 255, .15);
+            color: #fff;
+            border-color: transparent;
+        }
+
+        .lb-new .btn:hover {
+            background: rgba(255, 255, 255, .28);
+        }
+
+        .toast {
+            position: fixed;
+            top: 18px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #111827;
+            color: #fff;
+            padding: 10px 16px;
+            border-radius: 12px;
+            font-size: 14px;
+            z-index: 200;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity .2s;
+        }
+
+        .toast.show {
+            opacity: 1;
+        }
+
+        .backdrop {
+            display: none;
+        }
+
+        /* ---------- Responsive ---------- */
+        @media (max-width: 860px) {
+            .app {
+                grid-template-columns: 1fr;
+                padding: 14px 12px 90px;
+            }
+
+            .menu-btn {
+                display: inline-block;
+            }
+
+            .sidebar {
+                position: fixed;
+                top: 0;
+                left: 0;
+                bottom: 0;
+                z-index: 60;
+                width: min(86vw, 320px);
+                max-height: none;
+                border-radius: 0 var(--radius) var(--radius) 0;
+                transform: translateX(-102%);
+                transition: transform .25s ease;
+            }
+
+            .sidebar.open {
+                transform: none;
+            }
+
+            .backdrop.show {
+                display: block;
+                position: fixed;
+                inset: 0;
+                background: rgba(0, 0, 0, .4);
+                z-index: 50;
+            }
+
+            .gallery-wrapper {
+                padding: 12px;
+            }
+
+            .gallery-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 10px;
+            }
+
+            .photo-card img {
+                height: 200px;
+            }
+
+            .lb-stage {
+                padding: 0 8px;
+            }
+
+            .lb-nav.prev {
+                left: 6px;
+            }
+
+            .lb-nav.next {
+                right: 6px;
+            }
+
+            .lb-nav {
+                background: rgba(0, 0, 0, .45);
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                transition: none !important;
+            }
         }
     </style>
 </head>
-<body>
-    <div class="container">
-        <h1>Thư viện ảnh Google Drive</h1>
-        <p class="subtitle">Hiển thị danh sách hình ảnh từ Google Drive theo ID</p>
 
-        <div class="gallery-wrapper">
-            <div id="status" class="status">Đang tải ảnh...</div>
-            <div id="gallery" class="gallery-grid" aria-live="polite"></div>
+<body>
+    <div class="app" id="app">
+        <aside class="sidebar" id="sidebar" aria-label="Danh sách tag">
+            <h2>Bộ sưu tập</h2>
+            <div class="seg" id="collectionSeg"></div>
+
+            <h3>Tag</h3>
+            <div class="tag-list" id="tagList"></div>
+
+            <h3>Tạo tag mới</h3>
+            <form class="add-tag" id="addTagForm">
+                <input id="newTagInput" type="text" maxlength="30" placeholder="VD: Gia đình" autocomplete="off">
+                <button class="btn primary" type="submit">Thêm</button>
+            </form>
+
+            <h3>Dữ liệu</h3>
+            <div class="side-actions">
+                <button class="btn full" id="exportBtn" type="button">Xuất dữ liệu (.json)</button>
+            </div>
+        </aside>
+        <div class="backdrop" id="backdrop"></div>
+
+        <main class="main">
+            <div class="topbar">
+                <button class="btn menu-btn" id="menuBtn" type="button">☰ Tag</button>
+                <h1 id="viewTitle">Thư viện ảnh</h1>
+                <span class="grow"></span>
+                <button class="btn" id="selectModeBtn" type="button">Chọn nhiều</button>
+            </div>
+
+            <div class="gallery-wrapper">
+                <div id="status" class="status">Đang tải ảnh...</div>
+                <div id="gallery" class="gallery-grid" aria-live="polite"></div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Thanh thao tác hàng loạt -->
+    <div class="bulkbar" id="bulkbar">
+        <span class="info" id="bulkInfo"></span>
+        <span id="bulkTags" style="display:contents"></span>
+        <button class="btn" id="bulkAll" type="button">Chọn tất cả</button>
+        <button class="btn" id="bulkNone" type="button">Bỏ chọn</button>
+        <button class="btn" id="bulkDone" type="button">Xong</button>
+    </div>
+
+    <!-- Lightbox -->
+    <div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Xem ảnh">
+        <div class="lb-top">
+            <span class="counter" id="lbCounter"></span>
+            <span class="title" id="lbTitle"></span>
+            <button class="lb-btn" id="lbClose" type="button" aria-label="Đóng">✕</button>
+        </div>
+        <div class="lb-stage" id="lbStage">
+            <button class="lb-btn lb-nav prev" id="lbPrev" type="button" aria-label="Ảnh trước">‹</button>
+            <span class="loading" id="lbLoading">Đang tải...</span>
+            <img id="lbImg" alt="">
+            <button class="lb-btn lb-nav next" id="lbNext" type="button" aria-label="Ảnh sau">›</button>
+        </div>
+        <div class="lb-bottom">
+            <div class="lb-tags" id="lbTags"></div>
+            <form class="lb-new" id="lbNewForm">
+                <input id="lbNewInput" type="text" maxlength="30" placeholder="Tạo tag mới và gắn vào ảnh này"
+                    autocomplete="off">
+                <button class="btn" type="submit">Thêm</button>
+            </form>
         </div>
     </div>
 
+    <div class="toast" id="toast"></div>
+
+    <script src="data.js"></script>
     <script>
-        const gallery = document.getElementById('gallery');
-        const status = document.getElementById('status');
+        // ======================= Cấu hình =======================
+        // Mỗi bộ sưu tập = 1 file JSON dạng [{id, name}]
+        const COLLECTIONS = [
+            { key: 'luuniem', label: 'Lưu niệm', file: 'luuniem-image-id.json' },
+            { key: 'decor', label: 'Decor', file: 'decor-image-id.json' },
+            { key: 'phongsu', label: 'Phóng sự', file: 'phongsu-image-id.json' }
+        ];
+        const STORAGE_KEY = 'mq-bv-gallery-v1';
+        const COLORS = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#14b8a6', '#3b82f6', '#8b5cf6', '#ec4899', '#64748b'];
 
-        function toGoogleDriveImageUrl(fileId) {
-            return `https://drive.google.com/uc?export=view&id=${fileId}`;
+        // ======================= State =======================
+        const state = {
+            images: [],            // [{id, name, col}]
+            tags: [],              // [{id, name, color}]
+            map: {},               // { imageId: [tagId, ...] }
+            collection: 'all',     // 'all' | collection key
+            filter: 'all',         // 'all' | 'untagged' | tagId
+            selectMode: false,
+            selected: new Set(),
+            lbIndex: -1            // index trong danh sách đang lọc
+        };
+
+        const $ = (id) => document.getElementById(id);
+        const el = {
+            gallery: $('gallery'), status: $('status'), tagList: $('tagList'),
+            seg: $('collectionSeg'), title: $('viewTitle'), sidebar: $('sidebar'),
+            backdrop: $('backdrop'), bulkbar: $('bulkbar'), toast: $('toast'),
+            lb: $('lightbox'), lbImg: $('lbImg'), lbLoading: $('lbLoading'),
+            lbTags: $('lbTags'), lbTitle: $('lbTitle'), lbCounter: $('lbCounter')
+        };
+
+        // ======================= Lưu trữ =======================
+        function getTagNameListForImage(imageId) {
+            return (state.map[imageId] || [])
+                .map(tagId => tagById(tagId))
+                .filter(Boolean)
+                .map(t => t.name);
         }
 
-        function formatFileName(name) {
-            return name ? name.replace(/\.[^/.]+$/, '') : 'Ảnh';
+        function buildCollectionPayload() {
+            const payload = {};
+            COLLECTIONS.forEach(col => {
+                payload[col.file] = state.images
+                    .filter(img => img.col === col.key)
+                    .map(img => {
+                        const tagNames = getTagNameListForImage(img.id);
+                        const item = { id: img.id, name: img.name };
+                        if (tagNames.length) item.tag = tagNames;
+                        return item;
+                    });
+            });
+            return payload;
         }
 
-        function renderGallery(images) {
-            gallery.innerHTML = '';
+        function loadStore() {
+            try {
+                const raw = localStorage.getItem(STORAGE_KEY);
+                if (!raw) return;
+                const data = JSON.parse(raw);
 
-            images.forEach(({ id, name }) => {
-                const card = document.createElement('article');
-                card.className = 'photo-card';
+                if (Array.isArray(data.tags)) {
+                    state.tags = data.tags
+                        .map((tag, index) => ({
+                            id: tag.id || uid(),
+                            name: String(tag.name || '').trim(),
+                            color: tag.color || COLORS[index % COLORS.length]
+                        }))
+                        .filter(tag => tag.name);
+                }
 
-                const img = document.createElement('img');
-                img.src = toGoogleDriveImageUrl(id);
-                img.alt = name || 'Google Drive image';
-                img.loading = 'lazy';
-                img.referrerPolicy = 'no-referrer';
-                img.onerror = () => {
-                    img.src = `https://drive.google.com/thumbnail?id=${id}&sz=w1200`;
+                if (data.map && typeof data.map === 'object') state.map = data.map;
+
+                if (data.collections && typeof data.collections === 'object') {
+                    Object.entries(data.collections).forEach(([fileName, items]) => {
+                        if (!Array.isArray(items)) return;
+                        items.forEach(item => {
+                            if (!item || typeof item !== 'object' || !item.id) return;
+                            const names = Array.isArray(item.tag) ? item.tag : (item.tag ? [item.tag] : []);
+                            const tagIds = names
+                                .map(n => String(n).trim())
+                                .filter(Boolean)
+                                .map(name => {
+                                    let tag = state.tags.find(t => t.name.toLowerCase() === name.toLowerCase());
+                                    if (!tag) {
+                                        tag = { id: uid(), name, color: COLORS[state.tags.length % COLORS.length] };
+                                        state.tags.push(tag);
+                                    }
+                                    return tag.id;
+                                });
+                            if (tagIds.length) state.map[item.id] = [...new Set(tagIds)];
+                        });
+                    });
+                }
+            } catch (e) { console.warn('Không đọc được dữ liệu tag', e); }
+        }
+
+        function saveStore() {
+            try {
+                const payload = {
+                    version: 2,
+                    tags: state.tags,
+                    map: state.map,
+                    collections: buildCollectionPayload()
                 };
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+            } catch (e) { toast('Không lưu được dữ liệu (trình duyệt chặn localStorage)'); }
+        }
 
-                const label = document.createElement('div');
-                label.className = 'photo-name';
-                label.textContent = formatFileName(name);
+        // ======================= Helpers =======================
+        // Thử lần lượt nhiều nguồn ảnh của Google Drive; nguồn nào lỗi thì tự chuyển sang nguồn kế tiếp
+        const fullUrl = (id) => `https://drive.google.com/uc?export=view&id=${id}`;
+        const imageSources = (id, w) => [
+            `https://drive.google.com/uc?export=view&id=${id}`,
+            `https://lh3.googleusercontent.com/d/${id}=w${w}`,
+            `https://drive.google.com/thumbnail?id=${id}&sz=w${w}`
+        ];
 
-                card.appendChild(img);
-                card.appendChild(label);
-                gallery.appendChild(card);
+        function setImageWithFallback(imgEl, id, w, onAllFailed, onLoaded) {
+            const sources = imageSources(id, w);
+            let i = 0;
+            imgEl.referrerPolicy = 'no-referrer';
+            imgEl.onload = () => { if (onLoaded) onLoaded(); };
+            imgEl.onerror = () => {
+                i++;
+                if (i < sources.length) imgEl.src = sources[i];
+                else { imgEl.onerror = null; if (onAllFailed) onAllFailed(); }
+            };
+            imgEl.src = sources[0];
+        }
+        const fileLabel = (n) => n ? n.replace(/\.[^/.]+$/, '') : 'Ảnh';
+        const uid = () => 't' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+        const tagById = (id) => state.tags.find(t => t.id === id);
+        const imgTags = (id) => (state.map[id] || []).map(tagById).filter(Boolean);
+        const slugify = (value) => String(value || '')
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .toLowerCase()
+            .replace(/[^a-z0-9\s-]/g, '')
+            .trim()
+            .replace(/\s+/g, '-')
+            .replace(/-+/g, '-') || 'all';
+
+        function getExportFileName() {
+            const collection = COLLECTIONS.find(c => c.key === state.collection) || { key: 'all', label: 'tat-ca' };
+            let tagName = 'tat-ca';
+
+            if (state.filter === 'untagged') tagName = 'chua-gan-tag';
+            else if (state.filter !== 'all') {
+                const tag = tagById(state.filter);
+                tagName = tag ? tag.name : 'tag';
+            }
+
+            const collectionName = slugify(collection.label || collection.key || 'tat-ca');
+            const tagSlug = slugify(tagName);
+            return `${collectionName}-${tagSlug}.json`;
+        }
+
+        let toastTimer;
+        function toast(msg) {
+            el.toast.textContent = msg;
+            el.toast.classList.add('show');
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => el.toast.classList.remove('show'), 2200);
+        }
+
+        function visibleImages() {
+            return state.images.filter(img => {
+                if (state.collection !== 'all' && img.col !== state.collection) return false;
+                const tags = state.map[img.id] || [];
+                if (state.filter === 'all') return true;
+                if (state.filter === 'untagged') return tags.length === 0;
+                return tags.includes(state.filter);
             });
         }
 
+        function countInScope(predicate) {
+            return state.images.filter(img =>
+                (state.collection === 'all' || img.col === state.collection) && predicate(state.map[img.id] || [])
+            ).length;
+        }
+
+        function createTag(name) {
+            name = name.trim();
+            if (!name) return null;
+            const exist = state.tags.find(t => t.name.toLowerCase() === name.toLowerCase());
+            if (exist) { toast(`Tag "${exist.name}" đã tồn tại`); return exist; }
+            const tag = { id: uid(), name, color: COLORS[state.tags.length % COLORS.length] };
+            state.tags.push(tag);
+            saveStore();
+            return tag;
+        }
+
+        function toggleTag(imageId, tagId, forceOn) {
+            const list = state.map[imageId] || [];
+            const has = list.includes(tagId);
+            const on = forceOn === undefined ? !has : forceOn;
+            if (on && !has) list.push(tagId);
+            if (!on && has) list.splice(list.indexOf(tagId), 1);
+            if (list.length) state.map[imageId] = list; else delete state.map[imageId];
+        }
+
+        // ======================= Render: sidebar =======================
+        function renderCollections() {
+            el.seg.innerHTML = '';
+            [{ key: 'all', label: 'Tất cả' }, ...COLLECTIONS].forEach(c => {
+                const b = document.createElement('button');
+                b.type = 'button';
+                b.textContent = c.label;
+                b.className = state.collection === c.key ? 'active' : '';
+                b.onclick = () => { state.collection = c.key; state.selected.clear(); renderAll(); };
+                el.seg.appendChild(b);
+            });
+        }
+
+        function tagItem({ id, name, color, count, editable }) {
+            const row = document.createElement('div');
+            row.className = 'tag-item' + (state.filter === id ? ' active' : '');
+            row.setAttribute('role', 'button');
+            row.tabIndex = 0;
+
+            const dot = document.createElement('span'); dot.className = 'dot';
+            if (color) dot.style.background = color;
+            const nm = document.createElement('span'); nm.className = 'name'; nm.textContent = name;
+            const ct = document.createElement('span'); ct.className = 'count'; ct.textContent = count;
+            row.append(dot, nm, ct);
+
+            if (editable) {
+                const tools = document.createElement('span'); tools.className = 'tools';
+                const ed = document.createElement('button');
+                ed.className = 'icon-btn'; ed.type = 'button'; ed.title = 'Đổi tên'; ed.textContent = '✎';
+                ed.onclick = (e) => { e.stopPropagation(); renameTag(id); };
+                const del = document.createElement('button');
+                del.className = 'icon-btn del'; del.type = 'button'; del.title = 'Xóa tag'; del.textContent = '✕';
+                del.onclick = (e) => { e.stopPropagation(); deleteTag(id); };
+                tools.append(ed, del);
+                row.appendChild(tools);
+            }
+
+            const select = () => { state.filter = id; closeDrawer(); renderAll(); };
+            row.onclick = select;
+            row.onkeydown = (e) => { if ((e.key === 'Enter' || e.key === ' ') && e.target === row) { e.preventDefault(); select(); } };
+            return row;
+        }
+
+        function renderTagList() {
+            el.tagList.innerHTML = '';
+            el.tagList.appendChild(tagItem({ id: 'all', name: 'Tất cả ảnh', count: countInScope(() => true) }));
+            el.tagList.appendChild(tagItem({ id: 'untagged', name: 'Chưa gắn tag', count: countInScope(t => t.length === 0) }));
+            state.tags.forEach(t => {
+                el.tagList.appendChild(tagItem({
+                    id: t.id, name: t.name, color: t.color, editable: true,
+                    count: countInScope(list => list.includes(t.id))
+                }));
+            });
+        }
+
+        function renameTag(id) {
+            const t = tagById(id);
+            const name = prompt('Đổi tên tag', t.name);
+            if (name === null) return;
+            const clean = name.trim();
+            if (!clean) return;
+            if (state.tags.some(x => x.id !== id && x.name.toLowerCase() === clean.toLowerCase())) {
+                toast('Tên tag đã tồn tại'); return;
+            }
+            t.name = clean; saveStore(); renderAll();
+        }
+
+        function deleteTag(id) {
+            const t = tagById(id);
+            const used = Object.values(state.map).filter(l => l.includes(id)).length;
+            if (!confirm(`Xóa tag "${t.name}"${used ? ` (đang gắn cho ${used} ảnh)` : ''}?`)) return;
+            state.tags = state.tags.filter(x => x.id !== id);
+            Object.keys(state.map).forEach(k => {
+                state.map[k] = state.map[k].filter(x => x !== id);
+                if (!state.map[k].length) delete state.map[k];
+            });
+            if (state.filter === id) state.filter = 'all';
+            saveStore(); renderAll();
+        }
+
+        // ======================= Render: grid =======================
+        function currentTitle() {
+            if (state.filter === 'all') return 'Tất cả ảnh';
+            if (state.filter === 'untagged') return 'Chưa gắn tag';
+            const t = tagById(state.filter);
+            return t ? `Tag: ${t.name}` : 'Tất cả ảnh';
+        }
+
+        function makeChip(tag) {
+            const c = document.createElement('span');
+            c.className = 'chip'; c.textContent = tag.name;
+            c.style.setProperty('--c', tag.color);
+            return c;
+        }
+
+        function renderGrid() {
+            const list = visibleImages();
+            el.title.textContent = currentTitle();
+            el.gallery.innerHTML = '';
+            el.gallery.classList.toggle('select-mode', state.selectMode);
+            document.body.classList.toggle('select-mode', state.selectMode);
+
+            if (!list.length) {
+                const empty = document.createElement('div');
+                empty.className = 'empty';
+                empty.style.gridColumn = '1 / -1';
+                empty.textContent = state.filter === 'all'
+                    ? 'Không có ảnh nào.'
+                    : 'Chưa có ảnh nào trong mục này. Mở một ảnh và bấm vào tag để gắn.';
+                el.gallery.appendChild(empty);
+            }
+
+            list.forEach((img, idx) => {
+                const card = document.createElement('button');
+                card.type = 'button';
+                card.className = 'photo-card' + (state.selected.has(img.id) ? ' selected' : '');
+                card.dataset.id = img.id;
+
+                const clip = document.createElement('div'); clip.className = 'img-clip';
+                const im = document.createElement('img');
+                im.alt = img.name || 'Google Drive image';
+                im.loading = 'lazy';
+                setImageWithFallback(im, img.id, 600, () => { im.alt = 'Không tải được ảnh'; });
+                clip.appendChild(im);
+
+                const check = document.createElement('span'); check.className = 'check'; check.textContent = '✓';
+
+                const meta = document.createElement('div'); meta.className = 'photo-meta';
+                const nm = document.createElement('div'); nm.className = 'photo-name'; nm.textContent = fileLabel(img.name);
+                const chips = document.createElement('div'); chips.className = 'chips';
+                imgTags(img.id).forEach(t => chips.appendChild(makeChip(t)));
+                meta.append(nm, chips);
+
+                card.append(check, clip, meta);
+                card.onclick = () => {
+                    if (state.selectMode) { toggleSelect(img.id, card); }
+                    else openLightbox(idx);
+                };
+                el.gallery.appendChild(card);
+            });
+
+            el.status.classList.remove('error');
+            el.status.textContent = `${list.length} / ${state.images.length} ảnh`;
+            renderBulkBar();
+        }
+
+        // ======================= Chọn nhiều =======================
+        function toggleSelect(id, card) {
+            if (state.selected.has(id)) state.selected.delete(id); else state.selected.add(id);
+            card.classList.toggle('selected', state.selected.has(id));
+            renderBulkBar();
+        }
+
+        function renderBulkBar() {
+            el.bulkbar.classList.toggle('show', state.selectMode);
+            $('selectModeBtn').textContent = state.selectMode ? 'Thoát chọn nhiều' : 'Chọn nhiều';
+            if (!state.selectMode) return;
+            const n = state.selected.size;
+            $('bulkInfo').textContent = n ? `Đã chọn ${n} ảnh — bấm tag để gắn / gỡ:` : 'Bấm vào ảnh để chọn';
+            const box = $('bulkTags');
+            box.innerHTML = '';
+            state.tags.forEach(t => {
+                const ids = [...state.selected];
+                const all = n > 0 && ids.every(id => (state.map[id] || []).includes(t.id));
+                const c = makeChip(t);
+                c.classList.toggle('on', all);
+                c.onclick = () => {
+                    if (!n) { toast('Hãy chọn ít nhất 1 ảnh'); return; }
+                    ids.forEach(id => toggleTag(id, t.id, !all));
+                    saveStore(); renderAll();
+                };
+                box.appendChild(c);
+            });
+        }
+
+        $('selectModeBtn').onclick = () => {
+            state.selectMode = !state.selectMode; state.selected.clear(); renderGrid();
+        };
+        $('bulkDone').onclick = () => { state.selectMode = false; state.selected.clear(); renderGrid(); };
+        $('bulkNone').onclick = () => { state.selected.clear(); renderGrid(); };
+        $('bulkAll').onclick = () => { visibleImages().forEach(i => state.selected.add(i.id)); renderGrid(); };
+
+        // ======================= Lightbox =======================
+        let lbList = [];
+
+        function openLightbox(index) {
+            lbList = visibleImages();
+            state.lbIndex = index;
+            el.lb.classList.add('open');
+            document.body.style.overflow = 'hidden';
+            showLightbox();
+            $('lbClose').focus();
+        }
+
+        function closeLightbox() {
+            el.lb.classList.remove('open');
+            document.body.style.overflow = '';
+            el.lbImg.removeAttribute('src');
+            state.lbIndex = -1;
+            renderAll(); // cập nhật tag hiển thị ở lưới
+        }
+
+        function lbStep(delta) {
+            if (!lbList.length) return;
+            state.lbIndex = (state.lbIndex + delta + lbList.length) % lbList.length;
+            showLightbox();
+        }
+
+        function showLightbox() {
+            const img = lbList[state.lbIndex];
+            if (!img) return;
+            el.lbTitle.textContent = fileLabel(img.name);
+            el.lbCounter.textContent = `${state.lbIndex + 1} / ${lbList.length}`;
+            el.lbLoading.style.display = 'block';
+            el.lbImg.style.opacity = '0.3';
+            el.lbImg.alt = img.name || '';
+
+            const targetId = img.id;
+            const isCurrent = () => lbList[state.lbIndex]?.id === targetId;
+            el.lbLoading.textContent = 'Đang tải...';
+            setImageWithFallback(
+                el.lbImg, targetId, 2000,
+                () => { if (isCurrent()) el.lbLoading.textContent = 'Không tải được ảnh này'; },
+                () => { if (isCurrent()) { el.lbLoading.style.display = 'none'; el.lbImg.style.opacity = '1'; } }
+            );
+
+            // Preload ảnh kế tiếp / trước đó
+            [1, -1].forEach(d => {
+                const n = lbList[(state.lbIndex + d + lbList.length) % lbList.length];
+                if (n && n.id !== targetId) { const p = new Image(); p.referrerPolicy = 'no-referrer'; p.src = fullUrl(n.id); }
+            });
+
+            renderLbTags();
+        }
+
+        function renderLbTags() {
+            const img = lbList[state.lbIndex];
+            if (!img) return;
+            const current = state.map[img.id] || [];
+            el.lbTags.innerHTML = '';
+            if (!state.tags.length) {
+                const hint = document.createElement('span');
+                hint.style.cssText = 'color:#9ca3af;font-size:13px';
+                hint.textContent = 'Chưa có tag nào. Hãy tạo tag đầu tiên bên dưới.';
+                el.lbTags.appendChild(hint);
+            }
+            state.tags.forEach(t => {
+                const c = makeChip(t);
+                c.classList.toggle('on', current.includes(t.id));
+                c.setAttribute('role', 'button');
+                c.tabIndex = 0;
+                const act = () => { toggleTag(img.id, t.id); saveStore(); renderLbTags(); renderTagList(); };
+                c.onclick = act;
+                c.onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); act(); } };
+                el.lbTags.appendChild(c);
+            });
+        }
+
+        $('lbNewForm').onsubmit = (e) => {
+            e.preventDefault();
+            const inp = $('lbNewInput');
+            const tag = createTag(inp.value);
+            if (!tag) return;
+            const img = lbList[state.lbIndex];
+            if (img) toggleTag(img.id, tag.id, true);
+            saveStore(); inp.value = '';
+            renderLbTags(); renderTagList();
+        };
+
+        $('lbClose').onclick = closeLightbox;
+        $('lbPrev').onclick = () => lbStep(-1);
+        $('lbNext').onclick = () => lbStep(1);
+        $('lbStage').addEventListener('click', (e) => { if (e.target === $('lbStage')) closeLightbox(); });
+
+        document.addEventListener('keydown', (e) => {
+            if (!el.lb.classList.contains('open')) return;
+            const typing = ['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName);
+            if (e.key === 'Escape') { if (typing) document.activeElement.blur(); else closeLightbox(); }
+            else if (!typing && e.key === 'ArrowLeft') { e.preventDefault(); lbStep(-1); }
+            else if (!typing && e.key === 'ArrowRight') { e.preventDefault(); lbStep(1); }
+        });
+
+        // Vuốt trái / phải trên mobile
+        let touchX = null;
+        $('lbStage').addEventListener('touchstart', (e) => { touchX = e.touches[0].clientX; }, { passive: true });
+        $('lbStage').addEventListener('touchend', (e) => {
+            if (touchX === null) return;
+            const dx = e.changedTouches[0].clientX - touchX;
+            if (Math.abs(dx) > 50) lbStep(dx > 0 ? -1 : 1);
+            touchX = null;
+        });
+
+        // ======================= Tag mới từ sidebar =======================
+        $('addTagForm').onsubmit = (e) => {
+            e.preventDefault();
+            const inp = $('newTagInput');
+            if (createTag(inp.value)) { inp.value = ''; renderAll(); }
+        };
+
+        // ======================= Xuất =======================
+        $('exportBtn').onclick = () => {
+            const exportPayload = buildCollectionPayload();
+            const blob = new Blob([JSON.stringify(exportPayload, null, 2)], { type: 'application/json' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'mq-bv-gallery-full.json';
+            a.click();
+            URL.revokeObjectURL(a.href);
+        };
+
+        // ======================= Drawer mobile =======================
+        function closeDrawer() { el.sidebar.classList.remove('open'); el.backdrop.classList.remove('show'); }
+        $('menuBtn').onclick = () => { el.sidebar.classList.add('open'); el.backdrop.classList.add('show'); };
+        el.backdrop.onclick = closeDrawer;
+
+        // ======================= Khởi tạo =======================
+        function renderAll() {
+            renderCollections();
+            renderTagList();
+            renderGrid();
+        }
+
         async function loadImages() {
+            loadStore();
             try {
-                const response = await fetch('luuniem-image-id.json');
-                if (!response.ok) {
-                    throw new Error('Không thể tải dữ liệu ảnh.');
-                }
+                const results = await Promise.allSettled(COLLECTIONS.map(async c => {
+                    let data;
+                    try {
+                        const res = await fetch(c.file);
+                        if (!res.ok) throw new Error(`Không thể tải ${c.file}`);
+                        data = await res.json();
+                    } catch (err) {
+                        // Mở bằng file:// bị chặn fetch -> dùng dữ liệu từ data.js
+                        data = window.GALLERY_DATA && window.GALLERY_DATA[c.key];
+                        if (!data) throw err;
+                    }
+                    if (!Array.isArray(data)) throw new Error(`${c.file} không đúng định dạng`);
+                    return data.map(i => ({ id: i.id, name: i.name, col: c.key }));
+                }));
 
-                const images = await response.json();
-                if (!Array.isArray(images) || images.length === 0) {
-                    throw new Error('Không có dữ liệu ảnh nào trong file JSON.');
-                }
+                const failed = results.filter(r => r.status === 'rejected');
+                state.images = results.filter(r => r.status === 'fulfilled').flatMap(r => r.value);
+                if (!state.images.length) throw new Error('Không đọc được dữ liệu ảnh. Hãy để data.js cùng thư mục với index.html, hoặc chạy bằng server (python3 -m http.server).');
 
-                renderGallery(images);
-                status.textContent = `Đã tải ${images.length} ảnh thành công`;
+                renderAll();
+                if (failed.length) toast(`Có ${failed.length} file JSON không tải được`);
             } catch (error) {
-                status.textContent = 'Lỗi khi tải ảnh';
-                status.classList.add('error');
+                el.status.textContent = 'Lỗi khi tải ảnh: ' + error.message;
+                el.status.classList.add('error');
                 console.error(error);
             }
         }
@@ -183,5 +1330,5 @@
         document.addEventListener('DOMContentLoaded', loadImages);
     </script>
 </body>
-</html>
 
+</html>
