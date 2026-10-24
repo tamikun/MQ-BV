@@ -1,30 +1,187 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <title>My GitHub Page</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google Drive Gallery</title>
+    <style>
+        :root {
+            --bg: #f4f4f4;
+            --panel: #ffffff;
+            --text: #1f2937;
+            --muted: #6b7280;
+            --shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+            --radius: 18px;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 32px 20px 60px;
+            font-family: Arial, Helvetica, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+        }
+
+        .container {
+            max-width: 1300px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: clamp(2rem, 3vw, 3rem);
+        }
+
+        .subtitle {
+            text-align: center;
+            color: var(--muted);
+            margin-bottom: 32px;
+            font-size: 16px;
+        }
+
+        .gallery-wrapper {
+            background: var(--panel);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 24px;
+        }
+
+        .gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 20px;
+        }
+
+        .photo-card {
+            overflow: hidden;
+            background: #f9fafb;
+            border-radius: 14px;
+            border: 1px solid #e5e7eb;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.04);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .photo-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 18px rgba(0, 0, 0, 0.08);
+        }
+
+        .photo-card img {
+            display: block;
+            width: 100%;
+            height: 360px;
+            object-fit: cover;
+            transition: transform 0.25s ease;
+            background: #eef2f7;
+        }
+
+        .photo-card:hover img {
+            transform: scale(1.03);
+        }
+
+        .photo-name {
+            padding: 12px 14px;
+            font-size: 14px;
+            color: var(--text);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .status {
+            text-align: center;
+            color: var(--muted);
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+
+        .error {
+            color: #c53030;
+            background: #fff5f5;
+            border: 1px solid #fed7d7;
+            border-radius: 12px;
+            padding: 12px 16px;
+            margin-bottom: 20px;
+        }
+    </style>
 </head>
 <body>
+    <div class="container">
+        <h1>Thư viện ảnh Google Drive</h1>
+        <p class="subtitle">Hiển thị danh sách hình ảnh từ Google Drive theo ID</p>
 
-    <h1>My Image from Google Drive</h1>
-    
-    <div class="gallery" id="gallery"></div>
+        <div class="gallery-wrapper">
+            <div id="status" class="status">Đang tải ảnh...</div>
+            <div id="gallery" class="gallery-grid" aria-live="polite"></div>
+        </div>
+    </div>
 
     <script>
-    const imageIds = [
-    "1dmGpYlh-JvFFlrL2JostjrDf6_-Ii_9Q",
-    "1zbMHXn7hf3omzQU3wCAXaIy5QHHPqsjy",
-    ];
+        const gallery = document.getElementById('gallery');
+        const status = document.getElementById('status');
 
-    const gallery = document.getElementById("gallery");
+        function toGoogleDriveImageUrl(fileId) {
+            return `https://drive.google.com/uc?export=view&id=${fileId}`;
+        }
 
-    imageIds.forEach(id => {
-    const img = document.createElement("img");
-    img.src = `https://drive.google.com/thumbnail?id=${id}&sz=w1000`;
-    img.alt = "Hình ảnh từ Google Drive";
-    img.loading = "lazy";
-    gallery.appendChild(img);
-    });
+        function formatFileName(name) {
+            return name ? name.replace(/\.[^/.]+$/, '') : 'Ảnh';
+        }
+
+        function renderGallery(images) {
+            gallery.innerHTML = '';
+
+            images.forEach(({ id, name }) => {
+                const card = document.createElement('article');
+                card.className = 'photo-card';
+
+                const img = document.createElement('img');
+                img.src = toGoogleDriveImageUrl(id);
+                img.alt = name || 'Google Drive image';
+                img.loading = 'lazy';
+                img.referrerPolicy = 'no-referrer';
+                img.onerror = () => {
+                    img.src = `https://drive.google.com/thumbnail?id=${id}&sz=w1200`;
+                };
+
+                const label = document.createElement('div');
+                label.className = 'photo-name';
+                label.textContent = formatFileName(name);
+
+                card.appendChild(img);
+                card.appendChild(label);
+                gallery.appendChild(card);
+            });
+        }
+
+        async function loadImages() {
+            try {
+                const response = await fetch('luuniem-image-id.json');
+                if (!response.ok) {
+                    throw new Error('Không thể tải dữ liệu ảnh.');
+                }
+
+                const images = await response.json();
+                if (!Array.isArray(images) || images.length === 0) {
+                    throw new Error('Không có dữ liệu ảnh nào trong file JSON.');
+                }
+
+                renderGallery(images);
+                status.textContent = `Đã tải ${images.length} ảnh thành công`;
+            } catch (error) {
+                status.textContent = 'Lỗi khi tải ảnh';
+                status.classList.add('error');
+                console.error(error);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', loadImages);
     </script>
 </body>
 </html>
+
