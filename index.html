@@ -812,6 +812,31 @@
                 .map(t => t.name);
         }
 
+        function ensureTagByName(name) {
+            const clean = String(name || '').trim();
+            if (!clean) return null;
+            let existing = state.tags.find(t => t.name.toLowerCase() === clean.toLowerCase());
+            if (!existing) {
+                existing = { id: uid(), name: clean, color: COLORS[state.tags.length % COLORS.length] };
+                state.tags.push(existing);
+            }
+            return existing;
+        }
+
+        function applyTagNamesToImage(item) {
+            if (!item || typeof item !== 'object' || !item.id) return;
+            const values = Array.isArray(item.tag)
+                ? item.tag
+                : (typeof item.tag === 'string' && item.tag.trim()) ? [item.tag] : [];
+            const ids = values
+                .map(v => String(v).trim())
+                .filter(Boolean)
+                .map(name => ensureTagByName(name))
+                .filter(Boolean)
+                .map(tag => tag.id);
+            if (ids.length) state.map[item.id] = [...new Set(ids)];
+        }
+
         function buildCollectionPayload() {
             const payload = {};
             COLLECTIONS.forEach(col => {
@@ -848,22 +873,7 @@
                 if (data.collections && typeof data.collections === 'object') {
                     Object.entries(data.collections).forEach(([fileName, items]) => {
                         if (!Array.isArray(items)) return;
-                        items.forEach(item => {
-                            if (!item || typeof item !== 'object' || !item.id) return;
-                            const names = Array.isArray(item.tag) ? item.tag : (item.tag ? [item.tag] : []);
-                            const tagIds = names
-                                .map(n => String(n).trim())
-                                .filter(Boolean)
-                                .map(name => {
-                                    let tag = state.tags.find(t => t.name.toLowerCase() === name.toLowerCase());
-                                    if (!tag) {
-                                        tag = { id: uid(), name, color: COLORS[state.tags.length % COLORS.length] };
-                                        state.tags.push(tag);
-                                    }
-                                    return tag.id;
-                                });
-                            if (tagIds.length) state.map[item.id] = [...new Set(tagIds)];
-                        });
+                        items.forEach(item => applyTagNamesToImage(item));
                     });
                 }
             } catch (e) { console.warn('Không đọc được dữ liệu tag', e); }
@@ -1311,6 +1321,8 @@
                         if (!data) throw err;
                     }
                     if (!Array.isArray(data)) throw new Error(`${c.file} không đúng định dạng`);
+
+                    data.forEach(item => applyTagNamesToImage(item));
                     return data.map(i => ({ id: i.id, name: i.name, col: c.key }));
                 }));
 
