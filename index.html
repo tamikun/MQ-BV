@@ -533,8 +533,8 @@
         }
 
         .lb-stage img {
-            max-width: min(96vw, 1500px);
-            max-height: calc(100vh - 170px);
+            max-width: calc(100vw - 24px);
+            max-height: calc(100vh - 80px);
             width: auto;
             height: auto;
             object-fit: contain;
@@ -702,8 +702,8 @@
             }
 
             .lb-stage img {
-                max-width: 100vw;
-                max-height: calc(100vh - 170px);
+                max-width: calc(100vw - 12px);
+                max-height: calc(100vh - 60px);
                 width: 100%;
                 height: auto;
             }
@@ -738,8 +738,8 @@
             <h3>Tag</h3>
             <div class="tag-list" id="tagList"></div>
 
-            <h3>Tạo tag mới</h3>
-            <form class="add-tag" id="addTagForm">
+            <h3 id="addTagTitle" style="display:none">Tạo tag mới</h3>
+            <form class="add-tag" id="addTagForm" style="display:none">
                 <input id="newTagInput" type="text" maxlength="30" placeholder="VD: Gia đình" autocomplete="off">
                 <button class="btn primary" type="submit">Thêm</button>
             </form>
@@ -756,7 +756,7 @@
                 <button class="btn menu-btn" id="menuBtn" type="button">☰ Tag</button>
                 <h1 id="viewTitle">Thư viện ảnh</h1>
                 <span class="grow"></span>
-                <button class="btn" id="selectModeBtn" type="button">Chọn nhiều</button>
+                <button class="btn" id="selectModeBtn" type="button" style="display:none">Chọn nhiều</button>
             </div>
 
             <div class="gallery-wrapper">
@@ -788,7 +788,7 @@
             <img id="lbImg" alt="">
             <button class="lb-btn lb-nav next" id="lbNext" type="button" aria-label="Ảnh sau">›</button>
         </div>
-        <div class="lb-bottom">
+        <div class="lb-bottom" id="lbBottom" style="display:none">
             <div class="lb-tags" id="lbTags"></div>
             <form class="lb-new" id="lbNewForm">
                 <input id="lbNewInput" type="text" maxlength="30" placeholder="Tạo tag mới và gắn vào ảnh này"
@@ -812,6 +812,15 @@
         const STORAGE_KEY = 'mq-bv-gallery-v1';
         const COLORS = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#14b8a6', '#3b82f6', '#8b5cf6', '#ec4899', '#64748b'];
 
+        // Tạm thời ẩn các chức năng không dùng trong phiên bản hiện tại.
+        // Đặt lại thành true để bật lại từng chức năng nếu cần.
+        const FEATURE_FLAGS = {
+            tagManagement: false,
+            multiSelect: false,
+            addTagSidebar: false,
+            addTagLightbox: false
+        };
+
         // ======================= State =======================
         const state = {
             images: [],            // [{id, name, col}]
@@ -830,8 +839,25 @@
             seg: $('collectionSeg'), title: $('viewTitle'), sidebar: $('sidebar'),
             backdrop: $('backdrop'), bulkbar: $('bulkbar'), toast: $('toast'),
             lb: $('lightbox'), lbImg: $('lbImg'), lbLoading: $('lbLoading'),
-            lbTags: $('lbTags'), lbTitle: $('lbTitle'), lbCounter: $('lbCounter')
+            lbTags: $('lbTags'), lbTitle: $('lbTitle'), lbCounter: $('lbCounter'),
+            selectModeBtn: $('selectModeBtn'), addTagForm: $('addTagForm'),
+            addTagTitle: $('addTagTitle'), lbBottom: $('lbBottom'), lbNewForm: $('lbNewForm')
         };
+
+        function applyFeatureVisibility() {
+            const showSidebarTagForm = FEATURE_FLAGS.addTagSidebar;
+            const showLightboxTagForm = FEATURE_FLAGS.addTagLightbox;
+
+            if (el.addTagTitle) el.addTagTitle.style.display = showSidebarTagForm ? '' : 'none';
+            if (el.addTagForm) el.addTagForm.style.display = showSidebarTagForm ? '' : 'none';
+
+            if (el.selectModeBtn) el.selectModeBtn.style.display = FEATURE_FLAGS.multiSelect ? '' : 'none';
+            if (el.bulkbar) el.bulkbar.style.display = FEATURE_FLAGS.multiSelect ? '' : 'none';
+
+            if (el.lbBottom) el.lbBottom.style.display = showLightboxTagForm ? '' : 'none';
+            if (el.lbTags) el.lbTags.style.display = showLightboxTagForm ? '' : 'none';
+            if (el.lbNewForm) el.lbNewForm.style.display = showLightboxTagForm ? '' : 'none';
+        }
 
         // ======================= Lưu trữ =======================
         function getTagNameListForImage(imageId) {
@@ -1038,7 +1064,7 @@
             const ct = document.createElement('span'); ct.className = 'count'; ct.textContent = count;
             row.append(dot, nm, ct);
 
-            if (editable) {
+            if (FEATURE_FLAGS.tagManagement && editable) {
                 const menuBtn = document.createElement('button');
                 menuBtn.type = 'button';
                 menuBtn.className = 'menu-toggle';
@@ -1182,8 +1208,14 @@
         }
 
         function renderBulkBar() {
+            if (!FEATURE_FLAGS.multiSelect) {
+                el.bulkbar.classList.remove('show');
+                if (el.selectModeBtn) el.selectModeBtn.textContent = 'Chọn nhiều';
+                return;
+            }
+
             el.bulkbar.classList.toggle('show', state.selectMode);
-            $('selectModeBtn').textContent = state.selectMode ? 'Thoát chọn nhiều' : 'Chọn nhiều';
+            if (el.selectModeBtn) el.selectModeBtn.textContent = state.selectMode ? 'Thoát chọn nhiều' : 'Chọn nhiều';
             if (!state.selectMode) return;
             const n = state.selected.size;
             $('bulkInfo').textContent = n ? `Đã chọn ${n} ảnh — bấm tag để gắn / gỡ:` : 'Bấm vào ảnh để chọn';
@@ -1203,12 +1235,13 @@
             });
         }
 
-        $('selectModeBtn').onclick = () => {
+        el.selectModeBtn.onclick = () => {
+            if (!FEATURE_FLAGS.multiSelect) return;
             state.selectMode = !state.selectMode; state.selected.clear(); renderGrid();
         };
-        $('bulkDone').onclick = () => { state.selectMode = false; state.selected.clear(); renderGrid(); };
-        $('bulkNone').onclick = () => { state.selected.clear(); renderGrid(); };
-        $('bulkAll').onclick = () => { visibleImages().forEach(i => state.selected.add(i.id)); renderGrid(); };
+        $('bulkDone').onclick = () => { if (!FEATURE_FLAGS.multiSelect) return; state.selectMode = false; state.selected.clear(); renderGrid(); };
+        $('bulkNone').onclick = () => { if (!FEATURE_FLAGS.multiSelect) return; state.selected.clear(); renderGrid(); };
+        $('bulkAll').onclick = () => { if (!FEATURE_FLAGS.multiSelect) return; visibleImages().forEach(i => state.selected.add(i.id)); renderGrid(); };
 
         // ======================= Lightbox =======================
         let lbList = [];
@@ -1264,6 +1297,11 @@
         }
 
         function renderLbTags() {
+            if (!FEATURE_FLAGS.addTagLightbox) {
+                if (el.lbTags) el.lbTags.innerHTML = '';
+                return;
+            }
+
             const img = lbList[state.lbIndex];
             if (!img) return;
             const current = state.map[img.id] || [];
@@ -1287,6 +1325,7 @@
         }
 
         $('lbNewForm').onsubmit = (e) => {
+            if (!FEATURE_FLAGS.addTagLightbox) return;
             e.preventDefault();
             const inp = $('lbNewInput');
             const tag = createTag(inp.value);
@@ -1322,6 +1361,7 @@
 
         // ======================= Tag mới từ sidebar =======================
         $('addTagForm').onsubmit = (e) => {
+            if (!FEATURE_FLAGS.addTagSidebar) return;
             e.preventDefault();
             const inp = $('newTagInput');
             if (createTag(inp.value)) { inp.value = ''; renderAll(); }
@@ -1345,6 +1385,7 @@
 
         // ======================= Khởi tạo =======================
         function renderAll() {
+            applyFeatureVisibility();
             renderCollections();
             renderTagList();
             renderGrid();
