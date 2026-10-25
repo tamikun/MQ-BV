@@ -1349,14 +1349,28 @@
             else if (!typing && e.key === 'ArrowRight') { e.preventDefault(); lbStep(1); }
         });
 
-        // Vuốt trái / phải trên mobile
+        // Vuốt trái / phải trên mobile: bỏ qua hoàn toàn khi có pinch / multi-touch.
         let touchX = null;
-        $('lbStage').addEventListener('touchstart', (e) => { touchX = e.touches[0].clientX; }, { passive: true });
+        let touchStartTouches = 0;
+        $('lbStage').addEventListener('touchstart', (e) => {
+            touchStartTouches = e.touches.length;
+            if (touchStartTouches !== 1) {
+                touchX = null;
+                return;
+            }
+            touchX = e.touches[0].clientX;
+        }, { passive: true });
         $('lbStage').addEventListener('touchend', (e) => {
             if (touchX === null) return;
+            if (e.changedTouches.length !== 1 || touchStartTouches !== 1) {
+                touchX = null;
+                touchStartTouches = 0;
+                return;
+            }
             const dx = e.changedTouches[0].clientX - touchX;
             if (Math.abs(dx) > 50) lbStep(dx > 0 ? -1 : 1);
             touchX = null;
+            touchStartTouches = 0;
         });
 
         // ======================= Tag mới từ sidebar =======================
